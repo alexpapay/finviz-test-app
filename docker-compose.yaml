@@ -1,0 +1,6 @@
+name: finviz-test-app
+
+include:
+  - docker-compose.infrastructure.yaml
+  - docker-compose.backend.yaml
+  - docker-compose.frontend.yaml

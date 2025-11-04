@@ -1,0 +1,13 @@
+services:
+  service-worker:
+    container_name: finviz-test-app-api
+    build:
+      dockerfile: ./src/Finviz.TestApp.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    depends_on:
+      - postgres
+    ports:
+      - "31337:8080"
+    labels:
+      type: backend

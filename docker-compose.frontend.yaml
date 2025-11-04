@@ -1,0 +1,11 @@
+services:
+  react-app:
+    container_name: finviz-test-app-web
+    build:
+      context: ./src/Finviz.TestApp.Web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    labels:
+      type: frontend

@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Finviz.TestApp.Api", "src\Finviz.TestApp.Api\Finviz.TestApp.Api.csproj", "{63B65525-5400-4B63-9943-B43856ADEC05}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFolder", "SolutionFolder", "{F8A2A388-4224-48A4-A8FF-15864361E3F2}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		CreateAppStack.sh = CreateAppStack.sh
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docker", "Docker", "{858811B5-B079-4F14-A392-655046AEBBF2}"
+	ProjectSection(SolutionItems) = preProject
+		.env = .env
+		docker-compose.backend.yaml = docker-compose.backend.yaml
+		docker-compose.frontend.yaml = docker-compose.frontend.yaml
+		docker-compose.infrastructure.yaml = docker-compose.infrastructure.yaml
+		docker-compose.yaml = docker-compose.yaml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{63B65525-5400-4B63-9943-B43856ADEC05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63B65525-5400-4B63-9943-B43856ADEC05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63B65525-5400-4B63-9943-B43856ADEC05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63B65525-5400-4B63-9943-B43856ADEC05}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{858811B5-B079-4F14-A392-655046AEBBF2} = {F8A2A388-4224-48A4-A8FF-15864361E3F2}
+	EndGlobalSection
+EndGlobal

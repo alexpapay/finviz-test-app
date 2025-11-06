@@ -1,11 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+    <PropertyGroup>
+      <UserSecretsId>02cdeb0f-1fce-4df8-bd46-66fc091e027e</UserSecretsId>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Finviz.TestApp.ImageNet.Domain\Finviz.TestApp.ImageNet.Domain.csproj" />
+      <ProjectReference Include="..\Finviz.TestApp.ImageNet.Infrastructure\Finviz.TestApp.ImageNet.Infrastructure.csproj" />
+      <ProjectReference Include="..\Finviz.TestApp.ImageNet.Persistence\Finviz.TestApp.ImageNet.Persistence.csproj" />
     </ItemGroup>
 
 </Project>

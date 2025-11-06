@@ -1,17 +1,28 @@
+using System.Diagnostics;
+using Finviz.TestApp.ImageNet.Api.Mappers;
 using Finviz.TestApp.ImageNet.Domain;
 using Finviz.TestApp.ImageNet.Domain.Entries;
+using Finviz.TestApp.ImageNet.Infrastructure;
+using Finviz.TestApp.ImageNet.Infrastructure.Parsers;
+using Finviz.TestApp.ImageNet.Persistence;
+using Finviz.TestApp.ImageNet.Persistence.Contexts;
+using Finviz.TestApp.ImageNet.Persistence.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDomainServices();
+var environment = builder.Environment;
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services
+    .AddApplicationDbContext(builder.Configuration, environment.IsDevelopment())
+    .AddRepositories()
+    .AddInfrastructureServices()
+    .AddDomainServices()
+    .AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+await app.ApplyMigrationsAsync<ApplicationDbContext>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -19,15 +30,56 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/test", async (ImageNetXmlParser parser) =>
+app.MapGet("/api/imagenet/import", async (ImageNetXmlParser parser, IImageNetRepository imageNetRepository) =>
     {
-        var results = await parser
+        var stopwatch = Stopwatch.StartNew();
+        
+        var parsed = await parser
             .ParseAsync("tzutalin/ImageNet_Utils/refs/heads/master/detection_eval_tools/structure_released.xml");
         
-        var withSizes = parser.ComputeSizes(results);
+        var withSizes = parser.ComputeSizes(parsed);
         
-        return withSizes;
+        await imageNetRepository.BulkInsertAsync(withSizes.Select(ImageNetMapper.MapNewEntity));
+        
+        stopwatch.Stop();
+        
+        return new
+        {
+            totalParsed = parsed.Count,
+            totalSaved = withSizes.Count,
+            durationMs = stopwatch.ElapsedMilliseconds,
+            status = "Success"
+        };
     })
     .WithName("Test");
+
+app.MapGet("/api/imagenet/tree", async (IImageNetRepository imageNetRepository, ImageNetService imageNetService) =>
+    {
+        var entries = await imageNetRepository.GetAllAsync();
+        var tree = imageNetService.BuildTree(entries);
+        return tree.Select(ImageNetMapper.MapToTreeItemResponse);
+    })
+    .WithName("Tree");
+
+app.MapGet("/api/imagenet/tree/root", async (IImageNetRepository imageNetRepository) =>
+    {
+        var entries = await imageNetRepository.GetRootAsync();
+        return entries.Select(ImageNetMapper.MapToResponse);
+    })
+    .WithName("TreeRoot");
+
+app.MapGet("/api/imagenet/tree/children", async (IImageNetRepository imageNetRepository, int parentId) =>
+    {
+        var entries = await imageNetRepository.GetChildrenAsync(parentId);
+        return entries.Select(ImageNetMapper.MapToResponse);
+    })
+    .WithName("TreeChildren");
+
+app.MapGet("/api/imagenet/search", async (IImageNetRepository imageNetRepository, string q) =>
+    {
+        var entries = await imageNetRepository.SearchAsync(q);
+        return entries.Select(ImageNetMapper.MapToResponse);
+    })
+    .WithName("Search");
 
 app.Run();

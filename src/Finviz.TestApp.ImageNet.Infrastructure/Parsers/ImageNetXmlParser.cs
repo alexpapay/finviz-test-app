@@ -2,14 +2,14 @@
 using System.Xml;
 using Finviz.TestApp.Domain.Shared.Extensions;
 
-namespace Finviz.TestApp.ImageNet.Domain.Entries;
+namespace Finviz.TestApp.ImageNet.Infrastructure.Parsers;
 
 public class ImageNetXmlParser(HttpClient httpClient)
 {
-    public async Task<List<ImageNetEntry>> ParseAsync(string xmlUrl)
+    public async Task<List<ImageNetDto>> ParseAsync(string xmlUrl)
     {
         const int initialCapacity = 61000;
-        var results = new List<ImageNetEntry>(initialCapacity);
+        var results = new List<ImageNetDto>(initialCapacity);
 
         var settings = new XmlReaderSettings
         {
@@ -47,37 +47,42 @@ public class ImageNetXmlParser(HttpClient httpClient)
 
                 pathBuilder.Append(name);
 
-                results.Add(new ImageNetEntry
+                results.Add(new ImageNetDto
                 {
-                    Name = pathBuilder.ToString(),
+                    FullPath = pathBuilder.ToString(),
+                    Name = name,
                 });
 
                 if (reader.IsEmptyElement)
+                {
                     pathBuilder.Length = pathLengthStack.Pop();
+                }
             }
             else if (reader is { NodeType: XmlNodeType.EndElement, Name: "synset"})
             {
                 if (pathLengthStack.Count > 0)
+                {
                     pathBuilder.Length = pathLengthStack.Pop();
+                }
             }
         }
 
         return results;
     }
     
-    public List<ImageNetEntry> ComputeSizes(List<ImageNetEntry> entries)
+    public List<ImageNetDto> ComputeSizes(List<ImageNetDto> entries)
     {
         var imageNetEntries = entries
-            .DistinctBy(e => e.Name)
-            .ToDictionary(e => e.Name, e => e);
+            .DistinctBy(e => e.FullPath)
+            .ToDictionary(e => e.FullPath, e => e);
         
         var orderedEntries = entries
-            .OrderBy(e => e.Name.Count(c => c == '>'))
+            .OrderBy(e => e.FullPath.Count(c => c == '>'))
             .ToList();
 
         foreach (var entry in orderedEntries)
         {
-            var path = entry.Name;
+            var path = entry.FullPath;
             var index = path.LastIndexOf(" > ", StringComparison.Ordinal);
 
             while (index > 0)

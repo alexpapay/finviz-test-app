@@ -7,11 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
-        services.AddHttpClient<ImageNetXmlParser>(client =>
-        {
-            client.BaseAddress = new Uri("https://raw.githubusercontent.com/");
-            client.Timeout = TimeSpan.FromSeconds(30); 
-        });
+        services.AddScoped<ImageNetService>();
         
         return services;
     }

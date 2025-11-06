@@ -2,13 +2,17 @@
 using Finviz.TestApp.ImageNet.Domain.Entries;
 using Finviz.TestApp.ImageNet.Persistence.Contexts;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace Finviz.TestApp.ImageNet.Persistence.Repositories;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class ImageNetRepository(IConfiguration configuration) : IImageNetRepository
+public class ImageNetRepository(
+    ILogger<ImageNetRepository> logger, 
+    IConfiguration configuration) : 
+    IImageNetRepository
 {
     private readonly string _connectionString = configuration.GetConnectionString("Default")!;
 
@@ -111,8 +115,7 @@ public class ImageNetRepository(IConfiguration configuration) : IImageNetReposit
         catch (Exception exception)
         {
             await transaction.RollbackAsync();
-
-            throw new InvalidOperationException("Failed to import ImageNet data", exception);
+            logger.LogError(exception, "Failed to import ImageNet data");
         }
     }
 }

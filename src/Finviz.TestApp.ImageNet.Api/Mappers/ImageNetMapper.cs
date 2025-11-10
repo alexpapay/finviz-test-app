@@ -12,7 +12,7 @@ public static class ImageNetMapper
         {
             FullPath = dto.FullPath,
             Name = dto.Name,
-            Size = dto.Size
+            Size = dto.Size,
         };
     }
     
@@ -20,8 +20,10 @@ public static class ImageNetMapper
     {
         return new ImageNetResponse
         {
+            Id = entity.Id,
             Name = entity.Name,
             Size = entity.Size,
+            HasChildren = entity.Size != 0,
         };
     }
     
@@ -31,7 +33,7 @@ public static class ImageNetMapper
         {
             Name = entity.Name,
             Size = entity.Size,
-            Children = entity.Children.Select(MapToTreeItemResponse).ToList()
+            Children = entity.Children.Select(MapToTreeItemResponse).ToList(),
         };
     }
 }

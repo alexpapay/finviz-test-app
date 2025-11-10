@@ -14,12 +14,13 @@ public class ImageNetRepository(
     IConfiguration configuration) : 
     IImageNetRepository
 {
+    private const string BaseTable = nameof(ApplicationDbContext.ImageNetEntries);
     private readonly string _connectionString = configuration.GetConnectionString("Default")!;
 
     public async Task<List<ImageNetEntry>> GetAllAsync()
     {
         const string sql =
-            $"SELECT \"{nameof(ImageNetEntry.Id)}\", \"{nameof(ImageNetEntry.Name)}\", \"{nameof(ImageNetEntry.Size)}\", \"{nameof(ImageNetEntry.ParentId)}\" FROM \"{nameof(ApplicationDbContext.ImageNetEntries)}\"";
+            $"SELECT \"{nameof(ImageNetEntry.Id)}\", \"{nameof(ImageNetEntry.Name)}\", \"{nameof(ImageNetEntry.Size)}\", \"{nameof(ImageNetEntry.ParentId)}\" FROM \"{BaseTable}\"";
 
         await using var connection = new NpgsqlConnection(_connectionString);
         return (await connection.QueryAsync<ImageNetEntry>(sql)).ToList();
@@ -29,8 +30,8 @@ public class ImageNetRepository(
     {
         const string sql = $"""
                                 SELECT "{nameof(ImageNetEntry.Id)}", "{nameof(ImageNetEntry.Name)}", "{nameof(ImageNetEntry.Size)}",
-                                       EXISTS (SELECT 1 FROM "{nameof(ApplicationDbContext.ImageNetEntries)}" c WHERE c."{nameof(ImageNetEntry.ParentId)}" = e."{nameof(ImageNetEntry.Id)}") AS "HasChildren"
-                                FROM "{nameof(ApplicationDbContext.ImageNetEntries)}" e
+                                       EXISTS (SELECT 1 FROM "{BaseTable}" c WHERE c."{nameof(ImageNetEntry.ParentId)}" = e."{nameof(ImageNetEntry.Id)}") AS "HasChildren"
+                                FROM "{BaseTable}" e
                                 WHERE "{nameof(ImageNetEntry.ParentId)}" IS NULL
                             """;
 
@@ -42,8 +43,8 @@ public class ImageNetRepository(
     {
         const string sql = $"""
                                 SELECT "{nameof(ImageNetEntry.Id)}", "{nameof(ImageNetEntry.Name)}", "{nameof(ImageNetEntry.Size)}", "{nameof(ImageNetEntry.ParentId)}",
-                                       EXISTS (SELECT 1 FROM "{nameof(ApplicationDbContext.ImageNetEntries)}" c WHERE c."{nameof(ImageNetEntry.ParentId)}" = e."{nameof(ImageNetEntry.Id)}") AS "HasChildren"
-                                FROM "{nameof(ApplicationDbContext.ImageNetEntries)}" e
+                                       EXISTS (SELECT 1 FROM "{BaseTable}" c WHERE c."{nameof(ImageNetEntry.ParentId)}" = e."{nameof(ImageNetEntry.Id)}") AS "HasChildren"
+                                FROM "{BaseTable}" e
                                 WHERE "{nameof(ImageNetEntry.ParentId)}" = @ParentId
                                 ORDER BY "{nameof(ImageNetEntry.Name)}"
                             """;
@@ -52,16 +53,37 @@ public class ImageNetRepository(
         return (await connection.QueryAsync<ImageNetEntry>(sql, new {ParentId = parentId})).ToList();
     }
 
-    public async Task<List<ImageNetEntry>> SearchAsync(string query)
+    public async Task<(List<ImageNetEntry> Items, int Total)> SearchAsync(string query, int skip = 0, int take = 100)
     {
+        await using var connection = new NpgsqlConnection(_connectionString);
+
+        const string countSql = $"""
+                                     SELECT COUNT(*) 
+                                     FROM "{BaseTable}"
+                                     WHERE "{nameof(ImageNetEntry.FullPath)}" ILIKE '%' || @Query || '%';
+                                 """;
+        
+        var total = await connection.ExecuteScalarAsync<int>(countSql, new
+        {
+            Query = query,
+        });
+        
         const string sql = $"""
-                                SELECT * FROM "{nameof(ApplicationDbContext.ImageNetEntries)}" 
+                                SELECT * 
+                                FROM "{BaseTable}" 
                                 WHERE "{nameof(ImageNetEntry.FullPath)}" ILIKE '%' || @Query || '%'
-                                LIMIT 200
+                                ORDER BY "{nameof(ImageNetEntry.Id)}"
+                                OFFSET @Skip LIMIT @Take;
                             """;
 
-        await using var connection = new NpgsqlConnection(_connectionString);
-        return (await connection.QueryAsync<ImageNetEntry>(sql, new {Query = query})).ToList();
+        var items = await connection.QueryAsync<ImageNetEntry>(sql, new
+        {
+            Query = query,
+            Skip = skip,
+            Take = take,
+        });
+
+        return (items.ToList(), total);
     }
 
     public async Task BulkInsertAsync(IEnumerable<ImageNetEntry> entries)
@@ -71,18 +93,16 @@ public class ImageNetRepository(
 
         await using var transaction = await connection.BeginTransactionAsync();
 
-        const string tableName = nameof(ApplicationDbContext.ImageNetEntries);
-
         try
         {
             await using (var clearCommand =
-                         new NpgsqlCommand($"TRUNCATE TABLE \"{tableName}\" RESTART IDENTITY CASCADE", connection))
+                         new NpgsqlCommand($"TRUNCATE TABLE \"{BaseTable}\" RESTART IDENTITY CASCADE", connection))
             {
                 await clearCommand.ExecuteNonQueryAsync();
             }
 
             await using (var writer = await connection.BeginBinaryImportAsync(
-                             $"COPY \"{tableName}\" (\"{nameof(ImageNetEntry.Name)}\", \"{nameof(ImageNetEntry.FullPath)}\", \"{nameof(ImageNetEntry.Size)}\", \"{nameof(ImageNetEntry.ParentId)}\") FROM STDIN (FORMAT BINARY)"))
+                             $"COPY \"{BaseTable}\" (\"{nameof(ImageNetEntry.Name)}\", \"{nameof(ImageNetEntry.FullPath)}\", \"{nameof(ImageNetEntry.Size)}\", \"{nameof(ImageNetEntry.ParentId)}\") FROM STDIN (FORMAT BINARY)"))
             {
                 foreach (var entry in entries)
                 {
@@ -97,9 +117,9 @@ public class ImageNetRepository(
             }
 
             const string updateSql = $"""
-                                          UPDATE "{tableName}" AS child
+                                          UPDATE "{BaseTable}" AS child
                                           SET "{nameof(ImageNetEntry.ParentId)}" = parent."{nameof(ImageNetEntry.Id)}"
-                                          FROM "{tableName}" AS parent
+                                          FROM "{BaseTable}" AS parent
                                           WHERE parent."{nameof(ImageNetEntry.FullPath)}" = substring(
                                               child."{nameof(ImageNetEntry.FullPath)}" FROM 1 FOR length(child."{nameof(ImageNetEntry.FullPath)}") - position(' > ' in reverse(child."{nameof(ImageNetEntry.FullPath)}")) - 2
                                           );

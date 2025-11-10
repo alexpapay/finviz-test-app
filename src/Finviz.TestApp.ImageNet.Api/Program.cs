@@ -38,9 +38,21 @@ try
         .AddRepositories()
         .AddInfrastructureServices()
         .AddDomainServices()
-        .AddOpenApi();
+        .AddOpenApi()
+        .AddCors(options =>
+        {
+            options.AddPolicy("AllowFrontend", policy =>
+            {
+                policy
+                    .WithOrigins("http://localhost:5173")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
 
     var app = builder.Build();
+    
+    app.UseCors("AllowFrontend");
 
     await app.ApplyMigrationsAsync<ApplicationDbContext>();
 
@@ -95,13 +107,20 @@ try
             return entries.Select(ImageNetMapper.MapToResponse);
         })
         .WithName("TreeChildren");
+    
+    app.MapGet("/api/imagenet/search",
+            async (IImageNetRepository imageNetRepository, string q, int? skip, int? take) =>
+            {
+                var (items, total) = await imageNetRepository.SearchAsync(q, skip ?? 0, take ?? 100);
 
-    app.MapGet("/api/imagenet/search", async (IImageNetRepository imageNetRepository, string q) =>
-        {
-            var entries = await imageNetRepository.SearchAsync(q);
-            return entries.Select(ImageNetMapper.MapToResponse);
-        })
+                return new
+                {
+                    items = items.Select(ImageNetMapper.MapToResponse),
+                    total
+                };
+            })
         .WithName("Search");
+
 
     app.Run();
     

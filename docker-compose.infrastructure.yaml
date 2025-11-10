@@ -15,4 +15,4 @@ services:
       type: database
 
 volumes:
-  postgres_data: {}
+  postgres_data: { }

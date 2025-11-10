@@ -17,11 +17,11 @@ public class ImageNetXmlParser(HttpClient httpClient)
             XmlResolver = null,
             Async = true,
             IgnoreComments = true,
-            IgnoreWhitespace = true
+            IgnoreWhitespace = true,
         };
 
-        var pathBuilder = new StringBuilder(1024);
-        var pathLengthStack = new Stack<int>(50);
+        var pathBuilder = new StringBuilder(capacity: 1024);
+        var pathLengthStack = new Stack<int>(capacity: 50);
         const string separator = " > ";
 
         await using var stream = await httpClient.GetStreamAsync(xmlUrl);
@@ -29,10 +29,10 @@ public class ImageNetXmlParser(HttpClient httpClient)
 
         while (await reader.ReadAsync())
         {
-            if (reader is { NodeType: XmlNodeType.Element, Name: "synset"})
+            if (reader is { NodeType: XmlNodeType.Element, Name: "synset" })
             {
                 var name = reader.GetAttribute("words");
-                
+
                 if (name.IsNullOrEmptyString())
                 {
                     continue;
@@ -58,7 +58,7 @@ public class ImageNetXmlParser(HttpClient httpClient)
                     pathBuilder.Length = pathLengthStack.Pop();
                 }
             }
-            else if (reader is { NodeType: XmlNodeType.EndElement, Name: "synset"})
+            else if (reader is { NodeType: XmlNodeType.EndElement, Name: "synset" })
             {
                 if (pathLengthStack.Count > 0)
                 {
@@ -69,13 +69,13 @@ public class ImageNetXmlParser(HttpClient httpClient)
 
         return results;
     }
-    
+
     public List<ImageNetDto> ComputeSizes(List<ImageNetDto> entries)
     {
         var imageNetEntries = entries
             .DistinctBy(e => e.FullPath)
             .ToDictionary(e => e.FullPath, e => e);
-        
+
         var orderedEntries = entries
             .OrderBy(e => e.FullPath.Count(c => c == '>'))
             .ToList();

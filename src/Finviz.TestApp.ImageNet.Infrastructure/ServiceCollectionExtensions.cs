@@ -10,9 +10,9 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<ImageNetXmlParser>(client =>
         {
             client.BaseAddress = new Uri("https://raw.githubusercontent.com/");
-            client.Timeout = TimeSpan.FromSeconds(30); 
+            client.Timeout = TimeSpan.FromSeconds(seconds: 30);
         });
-        
+
         return services;
     }
 }

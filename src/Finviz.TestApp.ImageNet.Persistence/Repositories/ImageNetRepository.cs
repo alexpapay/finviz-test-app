@@ -10,8 +10,8 @@ namespace Finviz.TestApp.ImageNet.Persistence.Repositories;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public class ImageNetRepository(
-    ILogger<ImageNetRepository> logger, 
-    IConfiguration configuration) : 
+    ILogger<ImageNetRepository> logger,
+    IConfiguration configuration) :
     IImageNetRepository
 {
     private const string BaseTable = nameof(ApplicationDbContext.ImageNetEntries);
@@ -39,6 +39,23 @@ public class ImageNetRepository(
         return (await connection.QueryAsync<ImageNetEntry>(sql)).ToList();
     }
 
+    public async Task<List<ImageNetEntry>> GetPathAsync(int id)
+    {
+        const string sql = $"""
+                                WITH RECURSIVE path AS (
+                                    SELECT * FROM "{BaseTable}" WHERE "{nameof(ImageNetEntry.Id)}" = @Id
+                                    UNION ALL
+                                    SELECT parent.* FROM "{BaseTable}" parent
+                                    INNER JOIN path child ON parent."{nameof(ImageNetEntry.Id)}" = child."{nameof(ImageNetEntry.ParentId)}"
+                                )
+                                SELECT * FROM path ORDER BY "{nameof(ImageNetEntry.ParentId)}" NULLS FIRST;
+                            """;
+
+        await using var connection = new NpgsqlConnection(_connectionString);
+        var entries = await connection.QueryAsync<ImageNetEntry>(sql, new { Id = id });
+        return entries.ToList();
+    }
+
     public async Task<List<ImageNetEntry>> GetChildrenAsync(int parentId)
     {
         const string sql = $"""
@@ -50,7 +67,7 @@ public class ImageNetRepository(
                             """;
 
         await using var connection = new NpgsqlConnection(_connectionString);
-        return (await connection.QueryAsync<ImageNetEntry>(sql, new {ParentId = parentId})).ToList();
+        return (await connection.QueryAsync<ImageNetEntry>(sql, new { ParentId = parentId })).ToList();
     }
 
     public async Task<(List<ImageNetEntry> Items, int Total)> SearchAsync(string query, int skip = 0, int take = 100)
@@ -58,30 +75,32 @@ public class ImageNetRepository(
         await using var connection = new NpgsqlConnection(_connectionString);
 
         const string countSql = $"""
-                                     SELECT COUNT(*) 
+                                     SELECT COUNT(*)
                                      FROM "{BaseTable}"
                                      WHERE "{nameof(ImageNetEntry.FullPath)}" ILIKE '%' || @Query || '%';
                                  """;
-        
-        var total = await connection.ExecuteScalarAsync<int>(countSql, new
-        {
-            Query = query,
-        });
-        
+
+        var total = await connection.ExecuteScalarAsync<int>(countSql,
+            new
+            {
+                Query = query,
+            });
+
         const string sql = $"""
-                                SELECT * 
-                                FROM "{BaseTable}" 
+                                SELECT *
+                                FROM "{BaseTable}"
                                 WHERE "{nameof(ImageNetEntry.FullPath)}" ILIKE '%' || @Query || '%'
                                 ORDER BY "{nameof(ImageNetEntry.Id)}"
                                 OFFSET @Skip LIMIT @Take;
                             """;
 
-        var items = await connection.QueryAsync<ImageNetEntry>(sql, new
-        {
-            Query = query,
-            Skip = skip,
-            Take = take,
-        });
+        var items = await connection.QueryAsync<ImageNetEntry>(sql,
+            new
+            {
+                Query = query,
+                Skip = skip,
+                Take = take,
+            });
 
         return (items.ToList(), total);
     }

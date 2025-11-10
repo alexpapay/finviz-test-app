@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Http" />
+        <PackageReference Include="Microsoft.Extensions.Http"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Finviz.TestApp.Domain.Shared\Finviz.TestApp.Domain.Shared.csproj" />
+        <ProjectReference Include="..\Finviz.TestApp.Domain.Shared\Finviz.TestApp.Domain.Shared.csproj"/>
     </ItemGroup>
 
 </Project>

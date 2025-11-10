@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-      <ProjectReference Include="..\Finviz.TestApp.Domain.Shared\Finviz.TestApp.Domain.Shared.csproj" />
+        <ProjectReference Include="..\Finviz.TestApp.Domain.Shared\Finviz.TestApp.Domain.Shared.csproj"/>
     </ItemGroup>
 
 </Project>

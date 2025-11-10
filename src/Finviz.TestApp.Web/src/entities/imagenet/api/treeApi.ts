@@ -1,14 +1,26 @@
 ﻿import { api } from "@/shared/api/httpClient";
 import type { ImageNetNode } from "../model/types";
 
-export async function getRootNodes(): Promise<ImageNetNode[]> {
-    const { data } = await api.get<ImageNetNode[]>("/api/imagenet/tree/root");
-    return data;
-}
+const TREE_ENDPOINT = "/api/imagenet/tree";
 
-export async function getNodeChildren(parentId: number): Promise<ImageNetNode[]> {
-    const { data } = await api.get<ImageNetNode[]>(
-        `/api/imagenet/tree/children?parentId=${parentId}`
-    );
-    return data;
-}
+export const getRootNodes = async (): Promise<ImageNetNode[]> => {
+    try {
+        const { data } = await api.get<ImageNetNode[]>(`${TREE_ENDPOINT}/root`);
+        return data;
+    } catch (error) {
+        return [];
+    }
+};
+
+export const getNodeChildren = async (
+    parentId: number
+): Promise<ImageNetNode[]> => {
+    try {
+        const { data } = await api.get<ImageNetNode[]>(
+            `${TREE_ENDPOINT}/children/${parentId}`
+        );
+        return data;
+    } catch (error) {
+        return [];
+    }
+};

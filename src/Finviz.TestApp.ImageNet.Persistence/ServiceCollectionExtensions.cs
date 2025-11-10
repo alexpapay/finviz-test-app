@@ -19,7 +19,7 @@ public static partial class ServiceCollectionExtensions
 
         return services;
     }
-    
+
     public static IServiceCollection AddApplicationDbContext(this IServiceCollection services,
         ConfigurationManager configuration,
         bool sensitiveDataLogging)

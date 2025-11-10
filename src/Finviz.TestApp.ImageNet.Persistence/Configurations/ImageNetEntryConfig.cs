@@ -14,19 +14,19 @@ public class ImageNetEntryConfig : IEntityTypeConfiguration<ImageNetEntry>
             .ValueGeneratedOnAdd();
 
         builder.Property(imageNetEntry => imageNetEntry.Name)
-            .HasMaxLength(255)
+            .HasMaxLength(maxLength: 255)
             .IsRequired();
 
         builder.Property(imageNetEntry => imageNetEntry.FullPath)
-            .HasMaxLength(2048)
+            .HasMaxLength(maxLength: 2048)
             .IsRequired();
 
         builder.Property(imageNetEntry => imageNetEntry.Size)
             .IsRequired();
-        
+
         builder.HasIndex(imageNetEntry => imageNetEntry.FullPath)
             .IsUnique();
-        
+
         builder.HasIndex(imageNetEntry => imageNetEntry.ParentId);
 
         builder.HasOne(imageNetEntry => imageNetEntry.Parent)

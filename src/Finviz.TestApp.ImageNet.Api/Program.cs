@@ -21,7 +21,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting up the application");
-    
+
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -30,7 +30,7 @@ try
         .Enrich.FromLogContext()
         .WriteTo.Console()
     );
-    
+
     var environment = builder.Environment;
 
     builder.Services
@@ -41,17 +41,18 @@ try
         .AddOpenApi()
         .AddCors(options =>
         {
-            options.AddPolicy("AllowFrontend", policy =>
-            {
-                policy
-                    .WithOrigins("http://localhost:5173")
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
-            });
+            options.AddPolicy("AllowFrontend",
+                policy =>
+                {
+                    policy
+                        .WithOrigins("http://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
         });
 
     var app = builder.Build();
-    
+
     app.UseCors("AllowFrontend");
 
     await app.ApplyMigrationsAsync<ApplicationDbContext>();
@@ -63,51 +64,64 @@ try
 
     app.UseHttpsRedirection();
 
-    app.MapGet("/api/imagenet/import", async (ImageNetXmlParser parser, IImageNetRepository imageNetRepository) =>
-        {
-            var stopwatch = Stopwatch.StartNew();
-            
-            var parsed = await parser
-                .ParseAsync("tzutalin/ImageNet_Utils/refs/heads/master/detection_eval_tools/structure_released.xml");
-            
-            var withSizes = parser.ComputeSizes(parsed);
-            
-            await imageNetRepository.BulkInsertAsync(withSizes.Select(ImageNetMapper.MapNewEntity));
-            
-            stopwatch.Stop();
-            
-            return new
+    app.MapGet("/api/imagenet/import",
+            async (ImageNetXmlParser parser, IImageNetRepository imageNetRepository) =>
             {
-                totalParsed = parsed.Count,
-                totalSaved = withSizes.Count,
-                durationMs = stopwatch.ElapsedMilliseconds,
-                status = "Success"
-            };
-        })
+                var stopwatch = Stopwatch.StartNew();
+
+                var parsed = await parser
+                    .ParseAsync(
+                        "tzutalin/ImageNet_Utils/refs/heads/master/detection_eval_tools/structure_released.xml");
+
+                var withSizes = parser.ComputeSizes(parsed);
+
+                await imageNetRepository.BulkInsertAsync(withSizes.Select(ImageNetMapper.MapNewEntity));
+
+                stopwatch.Stop();
+
+                return new
+                {
+                    totalParsed = parsed.Count,
+                    totalSaved = withSizes.Count,
+                    durationMs = stopwatch.ElapsedMilliseconds,
+                    status = "Success",
+                };
+            })
         .WithName("Test");
 
-    app.MapGet("/api/imagenet/tree", async (IImageNetRepository imageNetRepository, ImageNetService imageNetService) =>
-        {
-            var entries = await imageNetRepository.GetAllAsync();
-            var tree = imageNetService.BuildTree(entries);
-            return tree.Select(ImageNetMapper.MapToTreeItemResponse);
-        })
+    app.MapGet("/api/imagenet/tree",
+            async (IImageNetRepository imageNetRepository, ImageNetService imageNetService) =>
+            {
+                var entries = await imageNetRepository.GetAllAsync();
+                var tree = imageNetService.BuildTree(entries);
+                return tree.Select(ImageNetMapper.MapToTreeItemResponse);
+            })
         .WithName("Tree");
 
-    app.MapGet("/api/imagenet/tree/root", async (IImageNetRepository imageNetRepository) =>
-        {
-            var entries = await imageNetRepository.GetRootAsync();
-            return entries.Select(ImageNetMapper.MapToResponse);
-        })
+    app.MapGet("/api/imagenet/tree/root",
+            async (IImageNetRepository imageNetRepository) =>
+            {
+                var entries = await imageNetRepository.GetRootAsync();
+                return entries.Select(ImageNetMapper.MapToResponse);
+            })
         .WithName("TreeRoot");
 
-    app.MapGet("/api/imagenet/tree/children", async (IImageNetRepository imageNetRepository, int parentId) =>
-        {
-            var entries = await imageNetRepository.GetChildrenAsync(parentId);
-            return entries.Select(ImageNetMapper.MapToResponse);
-        })
+    app.MapGet("/api/imagenet/tree/path/{id:int}",
+            async (IImageNetRepository imageNetRepository, int id) =>
+            {
+                var path = await imageNetRepository.GetPathAsync(id);
+                return path.Select(ImageNetMapper.MapToResponse);
+            })
+        .WithName("NodePath");
+
+    app.MapGet("/api/imagenet/tree/children/{parentId:int}",
+            async (IImageNetRepository imageNetRepository, int parentId) =>
+            {
+                var entries = await imageNetRepository.GetChildrenAsync(parentId);
+                return entries.Select(ImageNetMapper.MapToResponse);
+            })
         .WithName("TreeChildren");
-    
+
     app.MapGet("/api/imagenet/search",
             async (IImageNetRepository imageNetRepository, string q, int? skip, int? take) =>
             {
@@ -116,14 +130,12 @@ try
                 return new
                 {
                     items = items.Select(ImageNetMapper.MapToResponse),
-                    total
+                    total,
                 };
             })
         .WithName("Search");
 
-
     app.Run();
-    
 }
 catch (Exception exception)
 {

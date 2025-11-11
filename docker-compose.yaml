@@ -4,3 +4,7 @@ include:
   - docker-compose.infrastructure.yaml
   - docker-compose.backend.yaml
   - docker-compose.frontend.yaml
+
+secrets:
+  ConnectionStrings__Default:
+    file: ./configuration/Secrets/ConnectionStrings__Default.secret

@@ -41,14 +41,16 @@ try
         .AddOpenApi()
         .AddCors(options =>
         {
-            options.AddPolicy("AllowFrontend",
-                policy =>
-                {
-                    policy
-                        .WithOrigins("http://localhost:5173")
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
-                });
+            options.AddPolicy("AllowFrontend", policy =>
+            {
+                policy
+                    .WithOrigins(
+                        "http://localhost:5173",
+                        "http://localhost:31337"
+                    )
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
         });
 
     var app = builder.Build();

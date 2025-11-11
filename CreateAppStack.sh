@@ -9,7 +9,7 @@ echo "Pull containers..."
 docker-compose pull
 
 echo "Build containers..."
-docker-compose build
+docker-compose build --no-cache
 
 echo "Start-Up containers..."
 docker-compose up -d
